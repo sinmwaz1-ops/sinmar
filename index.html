@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SINMAR+</title>
+    <style>
+        :root { --main-bg: #050505; --accent-blue: #00E5FF; --white: #FFFFFF; }
+        body { background: var(--main-bg); color: var(--white); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow: hidden; }
+
+        /* الشعار الجديد */
+        .header { padding: 30px 60px; display: flex; align-items: center; justify-content: space-between; position: fixed; width: 100%; z-index: 100; background: linear-gradient(to bottom, black, transparent); }
+        .logo { font-size: 35px; font-weight: 900; color: var(--white); letter-spacing: 2px; }
+        .logo span { color: var(--accent-blue); }
+
+        /* القائمة العلوية */
+        .nav-menu { display: flex; gap: 40px; }
+        .nav-item { font-size: 20px; font-weight: bold; color: #888; cursor: pointer; transition: 0.3s; padding: 10px; border-bottom: 3px solid transparent; }
+        .nav-item.active, .nav-item:focus { color: var(--white); border-bottom-color: var(--accent-blue); outline: none; transform: scale(1.1); }
+
+        /* الهيرو */
+        .hero { height: 100vh; width: 100%; background: linear-gradient(to right, var(--main-bg) 20%, transparent), url('https://via.placeholder.com/1920x1080/111/444?text=SINMAR+PLUS+PREVIEW'); background-size: cover; display: flex; align-items: center; padding: 0 60px; }
+        .hero-content { max-width: 600px; }
+        .hero-content h1 { font-size: 70px; margin: 0; line-height: 1; }
+        .hero-content p { font-size: 22px; color: #aaa; margin: 20px 0; }
+        
+        .footer-note { position: absolute; bottom: 30px; left: 60px; color: #555; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">SINMAR<span>+</span></div>
+        <div class="nav-menu">
+            <div class="nav-item active" tabindex="0" id="btn-home">الرئيسية</div>
+            <div class="nav-item" tabindex="0" id="btn-movies">الأفلام</div>
+            <div class="nav-item" tabindex="0" id="btn-live">قنوات مباشرة</div>
+        </div>
+    </div>
+
+    <div class="hero">
+        <div class="hero-content">
+            <h1 id="hero-title">SINMAR<span>+</span></h1>
+            <p>استمتع بأقوى الأفلام والقنوات الحصرية بجودة عالية وبدون إعلانات.</p>
+            <div style="font-size: 18px; color: var(--accent-blue);">اضغط على "الأفلام" أو "القنوات" للبدء بالريموت</div>
+        </div>
+    </div>
+
+    <div class="footer-note">SINMAR+ SUBSCRIPTIONS EXPERIENCE</div>
+
+    <script>
+        // نظام التنقل بالريموت بين القوائم
+        const items = document.querySelectorAll('.nav-item');
+        let currentIndex = 0;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "ArrowRight") {
+                currentIndex = (currentIndex + 1) % items.length;
+                items[currentIndex].focus();
+            } else if (e.key === "ArrowLeft") {
+                currentIndex = (currentIndex - 1 + items.length) % items.length;
+                items[currentIndex].focus();
+            } else if (e.key === "Enter") {
+                const id = document.activeElement.id;
+                if (id === "btn-movies") window.location.href = "movies.html";
+                if (id === "btn-live") window.location.href = "live.html";
+            }
+        });
+
+        // فوكس تلقائي عند التشغيل
+        window.onload = () => items[0].focus();
+    </script>
+</body>
+</html>
