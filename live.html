@@ -1,74 +1,110 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8"><title>LIVE TV | SINMAR+</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIVE TV | SINMAR+</title>
     <style>
         :root { --bg: #050505; --cyan: #00E5FF; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 0; }
-        .header { position: sticky; top: 0; background: rgba(5,5,5,0.95); z-index: 100; padding: 15px 40px; border-bottom: 2px solid var(--cyan); display: flex; justify-content: space-between; align-items: center; }
-        .search-box { background: #111; border: 1px solid #333; padding: 8px 20px; border-radius: 20px; width: 35%; }
-        .search-box input { background: transparent; border: none; color: white; width: 100%; outline: none; }
-        .container { padding: 10px 40px; }
-        .category-title { font-size: 22px; color: var(--cyan); margin: 30px 0 10px; border-right: 5px solid var(--cyan); padding-right: 15px; }
-        .row { display: flex; gap: 15px; overflow-x: auto; padding: 10px 0; }
-        .card { min-width: 170px; height: 100px; background: #111; border-radius: 8px; border: 3px solid transparent; cursor: pointer; position: relative; flex-shrink: 0; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow-x: hidden; }
+        
+        /* مشغل الفيديو الداخلي */
+        #player-layer { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:9999; }
+        .close-btn { position:absolute; top:20px; right:20px; z-index:10000; background:red; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; }
+        video { width:100%; height:100%; }
+
+        .header { position: sticky; top: 0; background: rgba(5,5,5,0.95); z-index: 100; padding: 15px 20px; border-bottom: 2px solid var(--cyan); display: flex; justify-content: space-between; align-items: center; }
+        .container { padding: 10px 20px; }
+        .category-title { font-size: 20px; color: var(--cyan); margin: 25px 0 10px; border-right: 4px solid var(--cyan); padding-right: 10px; }
+        
+        /* صفوف القنوات الأفقية */
+        .row { display: flex; gap: 15px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+        .row::-webkit-scrollbar { display: none; }
+        
+        .card { min-width: 150px; height: 100px; background: #111; border-radius: 8px; border: 2px solid transparent; cursor: pointer; position: relative; flex-shrink: 0; transition: 0.3s; }
         .card:focus { border-color: white; transform: scale(1.1); outline: none; z-index: 10; }
         .card img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
-        .card-t { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 10px; text-align: center; padding: 5px; }
+        .card-t { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 10px; text-align: center; padding: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        #loader { text-align: center; margin-top: 50px; color: var(--cyan); font-size: 18px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div style="font-size: 24px; font-weight: bold;">SINMAR<span style="color:var(--cyan)">+</span> | LIVE TV</div>
-        <div class="search-box"><input type="text" id="srch" placeholder="ابحث عن قناة..."></div>
+
+    <div id="player-layer">
+        <button class="close-btn" onclick="closePlayer()">إغلاق X</button>
+        <video id="mainVideo" controls playsinline></video>
     </div>
-    <div id="ld" style="text-align:center; margin-top:50px; color:var(--cyan);">جاري تنظيم القنوات...</div>
-    <div id="main" class="container"></div>
+
+    <div class="header">
+        <div style="font-size: 22px; font-weight: bold;">SINMAR<span style="color:var(--cyan)">+</span> LIVE</div>
+        <input type="text" id="searchInput" placeholder="بحث عن قناة..." style="background:#111; border:1px solid #333; color:white; border-radius:20px; padding:5px 15px; outline:none;">
+    </div>
+
+    <div id="loader">جاري ترتيب القنوات...</div>
+    <div id="mainContent" class="container"></div>
 
     <script>
+        // رابط الوركر الخاص بك (تأكد من صحته)
         const workerUrl = "https://quiet-dream-9305.naaay1212.workers.dev";
-        let allLive = {};
+        let liveData = {};
 
-        async function load() {
+        async function fetchData() {
             try {
                 const res = await fetch(workerUrl);
-                const json = await res.json();
-                allLive = json.live;
-                render(allLive);
-                document.getElementById('ld').style.display = 'none';
-            } catch (e) { document.getElementById('ld').innerText = "خطأ في الاتصال"; }
+                const data = await res.json();
+                liveData = data.live; // جلب قنوات البث المباشر فقط
+                renderLive(liveData);
+                document.getElementById('loader').style.display = 'none';
+            } catch (e) {
+                document.getElementById('loader').innerText = "خطأ في تحميل القنوات";
+            }
         }
 
-        function render(data) {
-            const main = document.getElementById('main');
-            main.innerHTML = '';
-            for (let cat in data) {
-                let section = `<div class="category-title">${cat}</div><div class="row">`;
-                section += data[cat].map(ch => `
-                    <div class="card" tabindex="0" onclick="location.href='intent:${ch.url}#Intent;package=org.videolan.vlc;type=video/*;end'">
-                        <img src="${ch.logo}" onerror="this.src='https://via.placeholder.com/170x100/111/333?text=TV'">
+        function renderLive(groups) {
+            const container = document.getElementById('mainContent');
+            container.innerHTML = '';
+            for (let category in groups) {
+                let section = `<div class="category-title">${category}</div><div class="row">`;
+                section += groups[category].map(ch => `
+                    <div class="card" tabindex="0" onclick="playLive('${ch.url}')">
+                        <img src="${ch.logo}" onerror="this.src='https://ui-avatars.com/api/?name=TV&background=111&color=00E5FF'">
                         <div class="card-t">${ch.name}</div>
                     </div>`).join('');
                 section += `</div>`;
-                main.innerHTML += section;
+                container.innerHTML += section;
             }
         }
 
-        document.getElementById('srch').oninput = (e) => {
-            let term = e.target.value.toLowerCase();
-            let filtered = {};
-            for (let cat in allLive) {
-                let found = allLive[cat].filter(c => c.name.toLowerCase().includes(term));
+        // تشغيل البث داخلياً (سفاري/ايفون)
+        function playLive(url) {
+            const layer = document.getElementById('player-layer');
+            const video = document.getElementById('mainVideo');
+            layer.style.display = 'block';
+            video.src = url;
+            video.play();
+            if (video.webkitEnterFullscreen) video.webkitEnterFullscreen(); // كامل الشاشة للايفون
+        }
+
+        function closePlayer() {
+            const video = document.getElementById('mainVideo');
+            video.pause();
+            video.src = '';
+            document.getElementById('player-layer').style.display = 'none';
+        }
+
+        // البحث
+        document.getElementById('searchInput').oninput = (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = {};
+            for (let cat in liveData) {
+                const found = liveData[cat].filter(c => c.name.toLowerCase().includes(term));
                 if (found.length > 0) filtered[cat] = found;
             }
-            render(filtered);
+            renderLive(filtered);
         };
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === "Backspace") location.href = 'index.html';
-        });
-
-        load();
+        fetchData();
     </script>
 </body>
 </html>
