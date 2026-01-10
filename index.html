@@ -2,42 +2,115 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>SINMAR+</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SINMAR+ TV</title>
     <style>
-        :root { --bg: #050505; --cyan: #00E5FF; }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
-        .overlay { position: fixed; inset: 0; background: linear-gradient(to left, rgba(0,0,0,0.9) 30%, rgba(0,0,0,0.4) 70%, transparent 100%); z-index: 1; }
-        .hero { height: 100vh; width: 100%; background: url('https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070') center/cover; display: flex; align-items: center; justify-content: flex-start; }
-        .content { z-index: 2; padding-right: 8%; max-width: 650px; text-align: right; }
-        .logo { font-size: 100px; font-weight: 900; margin: 0; line-height: 0.8; }
-        .logo span { color: var(--cyan); text-shadow: 0 0 30px rgba(0,229,255,0.5); }
-        .tagline { font-size: 26px; color: var(--cyan); margin-top: 15px; font-weight: bold; }
-        .desc { font-size: 20px; color: #ddd; margin-top: 25px; line-height: 1.6; }
-        .nav-menu { display: flex; gap: 25px; margin-top: 50px; }
-        .nav-item { font-size: 24px; padding: 15px 50px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 2px solid transparent; cursor: pointer; color: #fff; text-decoration: none; font-weight: bold; }
-        .nav-item:focus { border-color: var(--cyan); background: var(--cyan); color: #000; transform: scale(1.1); outline: none; }
+        :root { --cyan: #00E5FF; --bg: #050505; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
+        
+        .header { padding: 20px; font-size: 30px; font-weight: bold; border-bottom: 3px solid var(--cyan); background: #000; }
+        
+        /* تصميم مخصص للشاشات الكبيرة */
+        .container { padding: 20px; height: 80vh; overflow-y: auto; }
+        .category-title { color: var(--cyan); font-size: 24px; margin: 20px 0 10px; }
+        
+        .row { display: flex; gap: 20px; overflow-x: auto; padding: 15px 5px; scrollbar-width: none; }
+        .row::-webkit-scrollbar { display: none; }
+
+        /* الأزرار مهيأة للتركيز بالريموت */
+        .card { 
+            min-width: 200px; background: #111; border-radius: 12px; 
+            cursor: pointer; border: 3px solid transparent; 
+            transition: all 0.3s ease; outline: none;
+        }
+        
+        /* أهم ميزة للتلفزيون: تحديد القناة المختارة بالريموت */
+        .card:focus, .card:hover { 
+            border-color: var(--cyan); 
+            transform: scale(1.1); 
+            background: #222;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+        }
+
+        .card img { width: 100%; height: 120px; object-fit: contain; padding: 10px; }
+        .card-t { padding: 10px; font-size: 14px; text-align: center; font-weight: bold; }
+
+        /* مشغل الفيديو ملء الشاشة */
+        #video-container { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:9999; }
+        video { width: 100%; height: 100%; }
+        .exit-hint { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; font-size: 12px; }
     </style>
 </head>
 <body>
-    <div class="overlay"></div>
-    <div class="hero">
-        <div class="content">
-            <h1 class="logo">SINMAR<span>+</span></h1>
-            <div class="tagline">GLOBAL ENTERTAINMENT</div>
-            <p class="desc">أهلاً بك في عالمك الخاص، استمتع بأحدث الأفلام والبث المباشر.</p>
-            <div class="nav-menu">
-                <a href="movies.html" class="nav-item" tabindex="0">MOVIES</a>
-                <a href="live.html" class="nav-item" tabindex="0">LIVE TV</a>
-            </div>
-        </div>
+
+    <div id="video-container">
+        <div class="exit-hint">اضغط "رجوع" للخروج</div>
+        <video id="player" controls autoplay></video>
     </div>
+
+    <div class="header">SINMAR<span style="color:var(--cyan)">+</span> TV</div>
+    
+    <div class="container" id="main-content">
+        <h2 id="loading" style="text-align:center; margin-top:100px;">جاري تحميل القنوات...</h2>
+    </div>
+
     <script>
-        window.onload = () => document.querySelector('.nav-item').focus();
-        document.addEventListener('keydown', (e) => {
-            const active = document.activeElement;
-            if (e.key === "ArrowLeft") active.nextElementSibling?.focus();
-            if (e.key === "ArrowRight") active.previousElementSibling?.focus();
+        const worker = "https://quiet-dream-9305.naaay1212.workers.dev";
+        let lastFocus = null;
+
+        async function loadTV() {
+            try {
+                const res = await fetch(worker);
+                const data = await res.json();
+                const main = document.getElementById('main-content');
+                main.innerHTML = '';
+
+                const sections = {...data.live, ...data.movies};
+                
+                for (let cat in sections) {
+                    let sectionHTML = `<div class="category-title">${cat}</div><div class="row">`;
+                    sectionHTML += sections[cat].map(item => `
+                        <div class="card" tabindex="0" onclick="playVideo('${item.url}')">
+                            <img src="${item.logo}">
+                            <div class="card-t">${item.name}</div>
+                        </div>`).join('');
+                    main.innerHTML += sectionHTML + `</div>`;
+                }
+                
+                // تركيز تلقائي على أول قناة عند التحميل لسهولة استخدام الريموت
+                document.querySelector('.card').focus();
+
+            } catch (e) {
+                document.getElementById('loading').innerText = "خطأ في الاتصال بالسيرفر";
+            }
+        }
+
+        function playVideo(url) {
+            lastFocus = document.activeElement; // حفظ آخر قناة كانت مختارة
+            const container = document.getElementById('video-container');
+            const video = document.getElementById('player');
+            container.style.display = 'block';
+            video.src = url;
+            video.play();
+            video.focus();
+        }
+
+        // معالجة أزرار الريموت (زر الرجوع)
+        window.addEventListener('keydown', function(e) {
+            if (e.key === "Escape" || e.key === "Back" || e.keyCode === 27 || e.keyCode === 8) {
+                const container = document.getElementById('video-container');
+                if (container.style.display === 'block') {
+                    const video = document.getElementById('player');
+                    video.pause();
+                    video.src = '';
+                    container.style.display = 'none';
+                    if (lastFocus) lastFocus.focus(); // إعادة التركيز للقائمة
+                    e.preventDefault();
+                }
+            }
         });
+
+        loadTV();
     </script>
 </body>
 </html>
