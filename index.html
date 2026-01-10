@@ -5,70 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SINMAR+</title>
     <style>
-        :root { --main-bg: #050505; --accent-blue: #00E5FF; --white: #FFFFFF; }
-        body { background: var(--main-bg); color: var(--white); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow: hidden; }
-
-        /* الشعار الجديد */
-        .header { padding: 30px 60px; display: flex; align-items: center; justify-content: space-between; position: fixed; width: 100%; z-index: 100; background: linear-gradient(to bottom, black, transparent); }
-        .logo { font-size: 35px; font-weight: 900; color: var(--white); letter-spacing: 2px; }
-        .logo span { color: var(--accent-blue); }
-
-        /* القائمة العلوية */
-        .nav-menu { display: flex; gap: 40px; }
-        .nav-item { font-size: 20px; font-weight: bold; color: #888; cursor: pointer; transition: 0.3s; padding: 10px; border-bottom: 3px solid transparent; }
-        .nav-item.active, .nav-item:focus { color: var(--white); border-bottom-color: var(--accent-blue); outline: none; transform: scale(1.1); }
-
-        /* الهيرو */
-        .hero { height: 100vh; width: 100%; background: linear-gradient(to right, var(--main-bg) 20%, transparent), url('https://via.placeholder.com/1920x1080/111/444?text=SINMAR+PLUS+PREVIEW'); background-size: cover; display: flex; align-items: center; padding: 0 60px; }
-        .hero-content { max-width: 600px; }
-        .hero-content h1 { font-size: 70px; margin: 0; line-height: 1; }
-        .hero-content p { font-size: 22px; color: #aaa; margin: 20px 0; }
+        :root { --bg: #050505; --cyan: #00E5FF; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
         
-        .footer-note { position: absolute; bottom: 30px; left: 60px; color: #555; font-size: 14px; }
+        /* تظليل OSN+ الفخم: سواد من اليمين يتلاشى لليسار */
+        .overlay {
+            position: fixed; inset: 0;
+            background: linear-gradient(to left, rgba(0,0,0,0.9) 25%, rgba(0,0,0,0.5) 50%, transparent 100%);
+            z-index: 1;
+        }
+
+        .hero { 
+            height: 100vh; width: 100%; 
+            background: url('https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070') center/cover;
+            display: flex; align-items: center; justify-content: flex-start;
+        }
+
+        .content { z-index: 2; padding-right: 10%; max-width: 600px; text-align: right; }
+        .logo { font-size: 100px; font-weight: 900; margin: 0; line-height: 0.9; letter-spacing: -3px; }
+        .logo span { color: var(--cyan); text-shadow: 0 0 25px rgba(0,229,255,0.5); }
+        .tagline { font-size: 26px; color: var(--cyan); margin-top: 15px; font-weight: bold; letter-spacing: 2px; }
+        .desc { font-size: 20px; color: #bbb; margin-top: 20px; line-height: 1.5; }
+
+        .nav-menu { display: flex; gap: 20px; margin-top: 40px; }
+        .nav-item { 
+            font-size: 24px; padding: 12px 45px; border-radius: 5px; background: rgba(255,255,255,0.1); 
+            border: 2px solid transparent; cursor: pointer; transition: 0.3s; color: #fff; text-decoration: none; font-weight: bold;
+        }
+        .nav-item:focus { border-color: var(--cyan); background: var(--cyan); color: #000; transform: scale(1.1); outline: none; }
+
+        .footer { position: absolute; bottom: 30px; right: 10%; font-size: 12px; color: rgba(255,255,255,0.2); letter-spacing: 4px; z-index: 2; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <div class="logo">SINMAR<span>+</span></div>
-        <div class="nav-menu">
-            <div class="nav-item active" tabindex="0" id="btn-home">الرئيسية</div>
-            <div class="nav-item" tabindex="0" id="btn-movies">الأفلام</div>
-            <div class="nav-item" tabindex="0" id="btn-live">قنوات مباشرة</div>
-        </div>
-    </div>
-
+    <div class="overlay"></div>
     <div class="hero">
-        <div class="hero-content">
-            <h1 id="hero-title">SINMAR<span>+</span></h1>
-            <p>استمتع بأقوى الأفلام والقنوات الحصرية بجودة عالية وبدون إعلانات.</p>
-            <div style="font-size: 18px; color: var(--accent-blue);">اضغط على "الأفلام" أو "القنوات" للبدء بالريموت</div>
+        <div class="content">
+            <h1 class="logo">SINMAR<span>+</span></h1>
+            <div class="tagline">GLOBAL ENTERTAINMENT</div>
+            <p class="desc">وجهتك العالمية الأولى لأحدث الأفلام الحصرية والبث المباشر بجودة لا تضاهى.</p>
+            <div class="nav-menu">
+                <a href="movies.html" class="nav-item" tabindex="0">MOVIES</a>
+                <a href="live.html" class="nav-item" tabindex="0">LIVE TV</a>
+            </div>
         </div>
     </div>
-
-    <div class="footer-note">SINMAR+ SUBSCRIPTIONS EXPERIENCE</div>
-
+    <div class="footer">SINMAR PLUS PREMIUM CONTENT</div>
     <script>
-        // نظام التنقل بالريموت بين القوائم
-        const items = document.querySelectorAll('.nav-item');
-        let currentIndex = 0;
-
+        window.onload = () => document.querySelector('.nav-item').focus();
         document.addEventListener('keydown', (e) => {
-            if (e.key === "ArrowRight") {
-                currentIndex = (currentIndex + 1) % items.length;
-                items[currentIndex].focus();
-            } else if (e.key === "ArrowLeft") {
-                currentIndex = (currentIndex - 1 + items.length) % items.length;
-                items[currentIndex].focus();
-            } else if (e.key === "Enter") {
-                const id = document.activeElement.id;
-                if (id === "btn-movies") window.location.href = "movies.html";
-                if (id === "btn-live") window.location.href = "live.html";
-            }
+            const active = document.activeElement;
+            if (e.key === "ArrowLeft") active.nextElementSibling?.focus();
+            if (e.key === "ArrowRight") active.previousElementSibling?.focus();
         });
-
-        // فوكس تلقائي عند التشغيل
-        window.onload = () => items[0].focus();
     </script>
 </body>
 </html>
