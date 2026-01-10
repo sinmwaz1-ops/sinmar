@@ -1,74 +1,48 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8"><title>MOVIES | SINMAR+</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOVIES | SINMAR+</title>
     <style>
         :root { --bg: #050505; --cyan: #00E5FF; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 0; }
-        .header { position: sticky; top: 0; background: rgba(5,5,5,0.95); z-index: 100; padding: 15px 40px; border-bottom: 2px solid var(--cyan); display: flex; justify-content: space-between; align-items: center; }
-        .search-box { background: #111; border: 1px solid #333; padding: 8px 20px; border-radius: 20px; width: 35%; }
-        .search-box input { background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 16px; }
-        .container { padding: 10px 40px; }
-        .category-title { font-size: 24px; color: var(--cyan); margin: 25px 0 15px; border-right: 5px solid var(--cyan); padding-right: 15px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
-        .card { background: #111; border-radius: 10px; border: 3px solid transparent; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; height: 240px; }
-        .card:focus { border-color: var(--cyan); transform: scale(1.1); outline: none; z-index: 10; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; }
+        .header { position: sticky; top: 0; background: rgba(5,5,5,0.95); z-index: 100; padding: 15px; border-bottom: 2px solid var(--cyan); display: flex; justify-content: space-between; align-items: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; padding: 20px; }
+        .card { background: #111; border-radius: 10px; cursor: pointer; position: relative; overflow: hidden; height: 210px; border: 2px solid transparent; }
+        .card:focus { border-color: var(--cyan); transform: scale(1.05); outline: none; }
         .card img { width: 100%; height: 100%; object-fit: cover; }
         .card-t { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, black); font-size: 11px; padding: 10px 5px; text-align: center; }
-        #ld { text-align: center; margin-top: 100px; font-size: 20px; color: var(--cyan); }
+        #player-layer { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:9999; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div style="font-size: 24px; font-weight: bold;">SINMAR<span style="color:var(--cyan)">+</span> | MOVIES</div>
-        <div class="search-box"><input type="text" id="srch" placeholder="بحث عن فيلم..."></div>
-    </div>
-    <div id="ld">جاري جلب الأفلام بالعربية...</div>
-    <div id="main" class="container"></div>
+    <div id="player-layer"><button onclick="closeP()" style="position:absolute; top:20px; right:20px; z-index:10000; background:red; color:white; border:none; padding:10px;">إغلاق X</button><video id="v" controls playsinline style="width:100%; height:100%;"></video></div>
+    <div class="header"><div>SINMAR<span style="color:var(--cyan)">+</span> MOVIES</div><input type="text" id="s" placeholder="بحث..." style="border-radius:20px; padding:5px 15px;"></div>
+    <div id="main"></div>
 
     <script>
-        const workerUrl = "https://quiet-dream-9305.naaay1212.workers.dev";
-        let allMovies = {};
+        const url = "https://quiet-dream-9305.naaay1212.workers.dev"; // تأكد من رابط الوركر حقك
+        let movies = {};
 
         async function load() {
-            try {
-                const res = await fetch(workerUrl);
-                const json = await res.json();
-                allMovies = json.movies;
-                render(allMovies);
-                document.getElementById('ld').style.display = 'none';
-            } catch (e) { document.getElementById('ld').innerText = "خطأ في الاتصال بالخادم"; }
+            const res = await fetch(url);
+            const data = await res.json();
+            movies = data.movies;
+            render(movies);
         }
 
         function render(data) {
-            const main = document.getElementById('main');
-            main.innerHTML = '';
+            const m = document.getElementById('main'); m.innerHTML = '';
             for (let cat in data) {
-                let section = `<div class="category-title">${cat}</div><div class="grid">`;
-                section += data[cat].map(m => `
-                    <div class="card" tabindex="0" onclick="location.href='intent:${m.url}#Intent;package=org.videolan.vlc;type=video/*;end'">
-                        <img src="${m.logo}" onerror="this.src='https://via.placeholder.com/160x240/111/333?text=SINMAR'">
-                        <div class="card-t">${m.name}</div>
-                    </div>`).join('');
-                section += `</div>`;
-                main.innerHTML += section;
+                let s = `<h2 style="padding:0 20px; color:var(--cyan)">${cat}</h2><div class="grid">`;
+                s += data[cat].map(i => `<div class="card" tabindex="0" onclick="play('${i.url}')"><img src="${i.logo}"><div class="card-t">${i.name}</div></div>`).join('');
+                m.innerHTML += s + `</div>`;
             }
         }
 
-        document.getElementById('srch').oninput = (e) => {
-            let term = e.target.value.toLowerCase();
-            let filtered = {};
-            for (let cat in allMovies) {
-                let found = allMovies[cat].filter(m => m.name.toLowerCase().includes(term));
-                if (found.length > 0) filtered[cat] = found;
-            }
-            render(filtered);
-        };
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === "Backspace") location.href = 'index.html';
-        });
-
+        function play(u) { const p = document.getElementById('player-layer'); const v = document.getElementById('v'); p.style.display='block'; v.src=u; v.play(); if(v.webkitEnterFullscreen) v.webkitEnterFullscreen(); }
+        function closeP() { const v = document.getElementById('v'); v.pause(); v.src=''; document.getElementById('player-layer').style.display='none'; }
+        
         load();
     </script>
 </body>
