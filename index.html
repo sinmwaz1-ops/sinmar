@@ -7,7 +7,7 @@
         :root { --cyan: #00E5FF; --white: #FFFFFF; --bg: #050505; }
         body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow: hidden; }
 
-        /* شاشة الدخول المطلوبة (SINMAR بالأبيض و + بالسماوي) */
+        /* شاشة الدخول الاحترافية */
         #splash { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: black; display: flex; justify-content: center; align-items: center; 
@@ -17,7 +17,6 @@
         .plus-text { color: var(--cyan); opacity: 0; animation: fadeIn 0.8s 1.2s forwards; }
         @keyframes fadeIn { to { opacity: 1; transform: scale(1); } }
 
-        /* واجهة المحتوى */
         .container { padding: 20px; display: none; height: 100vh; overflow-y: auto; scroll-behavior: smooth; }
         .row { display: flex; overflow-x: auto; gap: 20px; padding: 10px 5px; scrollbar-width: none; }
         .row::-webkit-scrollbar { display: none; }
@@ -26,11 +25,10 @@
             min-width: 200px; background: #111; border: 3px solid transparent; 
             border-radius: 12px; transition: 0.3s; cursor: pointer; outline: none;
         }
-        /* نظام التحكم بالريموت (Focus) */
         .card:focus { border-color: var(--cyan); transform: scale(1.1); background: #222; box-shadow: 0 0 15px var(--cyan); }
-        .card-t { padding: 12px; text-align: center; font-size: 14px; font-weight: bold; }
+        .card-t { padding: 12px; text-align: center; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .cat-title { color: var(--cyan); padding-right: 10px; margin-top: 30px; border-right: 4px solid var(--cyan); padding-right: 15px; }
+        .cat-title { color: var(--cyan); margin-top: 30px; border-right: 4px solid var(--cyan); padding-right: 15px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -42,10 +40,8 @@
     <div class="container" id="content"></div>
 
     <script>
-        // الرابط الجديد الذي زودتني به
         const apiUrl = "https://round-dew-df56.sinmwaz1.workers.dev/";
 
-        // إدارة شاشة الدخول
         setTimeout(() => {
             document.getElementById('splash').style.opacity = '0';
             setTimeout(() => {
@@ -60,53 +56,48 @@
                 const res = await fetch(apiUrl);
                 const data = await res.json();
                 const container = document.getElementById('content');
-                
-                // دمج قنوات البث والأفلام من الرابط المصفى
-                const groups = {...data.live, ...data.movies};
-                
-                if (Object.keys(groups).length === 0) {
-                    container.innerHTML = "<h2 style='text-align:center;margin-top:50px;'>عذراً، لم يتم العثور على محتوى حالياً</h2>";
-                    return;
-                }
+                container.innerHTML = '';
 
-                for (let cat in groups) {
-                    if (groups[cat].length === 0) continue;
+                // الدوران على التصنيفات الأساسية (مثل live_tv و movies) مباشرة
+                for (let mainCat in data) {
+                    const subGroups = data[mainCat];
                     
-                    let sectionHtml = `<h2 class="cat-title">${cat}</h2><div class="row">`;
-                    sectionHtml += groups[cat].map(item => `
-                        <div class="card" tabindex="0" onclick="play('${item.url}')">
-                            <div style="height:100px; background:linear-gradient(45deg, #0a0a0a, #222); display:flex; align-items:center; justify-content:center; border-radius:12px 12px 0 0;">
-                                <span style="color:var(--cyan); font-weight:bold; letter-spacing: 2px;">SINMAR+</span>
-                            </div>
-                            <div class="card-t">${item.name}</div>
-                        </div>`).join('');
-                    container.innerHTML += sectionHtml + `</div>`;
+                    for (let groupName in subGroups) {
+                        if (subGroups[groupName].length === 0) continue;
+
+                        // عرض اسم القسم (مثلاً: live_tv أو movies)
+                        let sectionTitle = groupName === "غير مصنف" ? (mainCat === "live_tv" ? "البث المباشر 📺" : "الأفلام 🎬") : groupName;
+                        
+                        let sectionHtml = `<h2 class="cat-title">${sectionTitle}</h2><div class="row">`;
+                        sectionHtml += subGroups[groupName].map(item => `
+                            <div class="card" tabindex="0" onclick="play('${item.url}')">
+                                <div style="height:100px; background:linear-gradient(45deg, #0a0a0a, #222); display:flex; align-items:center; justify-content:center; border-radius:12px 12px 0 0;">
+                                    <span style="color:var(--cyan); font-weight:bold;">+SINMAR</span>
+                                </div>
+                                <div class="card-t">${item.name}</div>
+                            </div>`).join('');
+                        container.innerHTML += sectionHtml + `</div>`;
+                    }
                 }
 
-                // تفعيل التركيز التلقائي للريموت على أول عنصر
                 const firstCard = document.querySelector('.card');
                 if (firstCard) firstCard.focus();
 
             } catch (e) { 
-                document.getElementById('content').innerHTML = "<h2 style='text-align:center;margin-top:50px;'>خطأ في تحميل البيانات من السيرفر</h2>"; 
+                container.innerHTML = "<h2 style='text-align:center;margin-top:50px;'>خطأ في جلب البيانات</h2>"; 
             }
         }
 
         function play(u) {
-            // التشغيل عبر VLC لضمان أفضل توافقية مع التلفزيون
             window.location.href = "intent://" + u.replace("http://", "") + "#Intent;scheme=http;type=video/*;package=org.videolan.vlc;end";
         }
 
-        // دعم التنقل بالأسهم في الريموت
+        // دعم التنقل بالأسهم للريموت
         document.addEventListener('keydown', (e) => {
             const current = document.activeElement;
             if (!current.classList.contains('card')) return;
-
-            if (e.key === "ArrowRight") {
-                current.nextElementSibling?.focus();
-            } else if (e.key === "ArrowLeft") {
-                current.previousElementSibling?.focus();
-            }
+            if (e.key === "ArrowRight") current.nextElementSibling?.focus();
+            else if (e.key === "ArrowLeft") current.previousElementSibling?.focus();
         });
     </script>
 </body>
