@@ -7,27 +7,30 @@
         :root { --cyan: #00E5FF; --white: #FFFFFF; --bg: #050505; }
         body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow: hidden; }
 
-        /* أنميشن الدخول */
+        /* شاشة الدخول المطلوبة (SINMAR بالأبيض و + بالسماوي) */
         #splash { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: black; display: flex; justify-content: center; align-items: center; 
-            z-index: 10000; font-size: 50px; font-weight: bold; 
+            z-index: 10000; font-size: 60px; font-weight: bold; transition: opacity 0.8s ease;
         }
-        .s-text { color: var(--white); opacity: 0; transform: translateY(20px); animation: fadeIn 1s forwards; }
-        .plus-text { color: var(--cyan); opacity: 0; animation: fadeIn 1s 1s forwards; }
-        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        .s-text { color: var(--white); opacity: 0; transform: scale(0.8); animation: fadeIn 1.2s forwards; }
+        .plus-text { color: var(--cyan); opacity: 0; animation: fadeIn 0.8s 1.2s forwards; }
+        @keyframes fadeIn { to { opacity: 1; transform: scale(1); } }
 
-        /* الواجهة */
-        .container { padding: 20px; display: none; height: 100vh; overflow-y: auto; }
-        .row { display: flex; overflow-x: auto; gap: 15px; padding: 15px 0; scrollbar-width: none; }
+        /* واجهة المحتوى */
+        .container { padding: 20px; display: none; height: 100vh; overflow-y: auto; scroll-behavior: smooth; }
+        .row { display: flex; overflow-x: auto; gap: 20px; padding: 10px 5px; scrollbar-width: none; }
+        .row::-webkit-scrollbar { display: none; }
+
         .card { 
-            min-width: 180px; background: #111; border: 3px solid transparent; 
-            border-radius: 12px; outline: none; transition: 0.2s; cursor: pointer;
+            min-width: 200px; background: #111; border: 3px solid transparent; 
+            border-radius: 12px; transition: 0.3s; cursor: pointer; outline: none;
         }
-        .card:focus { border-color: var(--cyan); transform: scale(1.08); background: #222; }
-        .card-t { padding: 10px; text-align: center; font-size: 14px; }
+        /* نظام التحكم بالريموت (Focus) */
+        .card:focus { border-color: var(--cyan); transform: scale(1.1); background: #222; box-shadow: 0 0 15px var(--cyan); }
+        .card-t { padding: 12px; text-align: center; font-size: 14px; font-weight: bold; }
         
-        #player-layer { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:999; }
+        .cat-title { color: var(--cyan); padding-right: 10px; margin-top: 30px; border-right: 4px solid var(--cyan); padding-right: 15px; }
     </style>
 </head>
 <body>
@@ -36,49 +39,75 @@
         <span class="s-text">SINMAR</span><span class="plus-text">+</span>
     </div>
 
-    <div id="player-layer"><video id="mainV" controls autoplay style="width:100%; height:100%;"></video></div>
-
     <div class="container" id="content"></div>
 
     <script>
-        const worker = "https://quiet-dream-9305.naaay1212.workers.dev";
+        // الرابط الجديد الذي زودتني به
+        const apiUrl = "https://round-dew-df56.sinmwaz1.workers.dev/";
 
-        // إخفاء شاشة الدخول وتحميل المحتوى
+        // إدارة شاشة الدخول
         setTimeout(() => {
-            document.getElementById('splash').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
-            loadData();
+            document.getElementById('splash').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('splash').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                loadData();
+            }, 800);
         }, 3000);
 
         async function loadData() {
-            const res = await fetch(worker);
-            const data = await res.json();
-            const container = document.getElementById('content');
-            const all = {...data.live, ...data.movies};
-            
-            for (let cat in all) {
-                let h = `<h2 style="color:var(--cyan); margin-top:30px;">${cat}</h2><div class="row">`;
-                h += all[cat].map(i => `
-                    <div class="card" tabindex="0" onclick="play('${i.url}')">
-                        <div style="height:80px; background:#333; border-radius:8px 8px 0 0; display:flex; align-items:center; justify-content:center; font-weight:bold;">TV</div>
-                        <div class="card-t">${i.name}</div>
-                    </div>`).join('');
-                container.innerHTML += h + `</div>`;
+            try {
+                const res = await fetch(apiUrl);
+                const data = await res.json();
+                const container = document.getElementById('content');
+                
+                // دمج قنوات البث والأفلام من الرابط المصفى
+                const groups = {...data.live, ...data.movies};
+                
+                if (Object.keys(groups).length === 0) {
+                    container.innerHTML = "<h2 style='text-align:center;margin-top:50px;'>عذراً، لم يتم العثور على محتوى حالياً</h2>";
+                    return;
+                }
+
+                for (let cat in groups) {
+                    if (groups[cat].length === 0) continue;
+                    
+                    let sectionHtml = `<h2 class="cat-title">${cat}</h2><div class="row">`;
+                    sectionHtml += groups[cat].map(item => `
+                        <div class="card" tabindex="0" onclick="play('${item.url}')">
+                            <div style="height:100px; background:linear-gradient(45deg, #0a0a0a, #222); display:flex; align-items:center; justify-content:center; border-radius:12px 12px 0 0;">
+                                <span style="color:var(--cyan); font-weight:bold; letter-spacing: 2px;">SINMAR+</span>
+                            </div>
+                            <div class="card-t">${item.name}</div>
+                        </div>`).join('');
+                    container.innerHTML += sectionHtml + `</div>`;
+                }
+
+                // تفعيل التركيز التلقائي للريموت على أول عنصر
+                const firstCard = document.querySelector('.card');
+                if (firstCard) firstCard.focus();
+
+            } catch (e) { 
+                document.getElementById('content').innerHTML = "<h2 style='text-align:center;margin-top:50px;'>خطأ في تحميل البيانات من السيرفر</h2>"; 
             }
-            document.querySelector('.card').focus(); // تفعيل الريموت
         }
 
         function play(u) {
-            // محاولة التشغيل بـ VLC للتلفزيون لضمان عدم حدوث خطأ MIME
-            if (confirm("هل تريد التشغيل في VLC لضمان أفضل جودة؟")) {
-                window.location.href = "intent://" + u.replace("http://", "") + "#Intent;scheme=http;type=video/*;package=org.videolan.vlc;end";
-            } else {
-                const v = document.getElementById('mainV');
-                document.getElementById('player-layer').style.display = 'block';
-                v.src = u;
-                v.play().catch(() => alert("المتصفح لا يدعم هذا الرابط، يرجى اختيار VLC"));
-            }
+            // التشغيل عبر VLC لضمان أفضل توافقية مع التلفزيون
+            window.location.href = "intent://" + u.replace("http://", "") + "#Intent;scheme=http;type=video/*;package=org.videolan.vlc;end";
         }
+
+        // دعم التنقل بالأسهم في الريموت
+        document.addEventListener('keydown', (e) => {
+            const current = document.activeElement;
+            if (!current.classList.contains('card')) return;
+
+            if (e.key === "ArrowRight") {
+                current.nextElementSibling?.focus();
+            } else if (e.key === "ArrowLeft") {
+                current.previousElementSibling?.focus();
+            }
+        });
     </script>
 </body>
 </html>
